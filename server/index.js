@@ -80,8 +80,13 @@ wss.on('connection', function connection(clientWs) {
     superxChatWs.on('message', function incoming(message) {
         try {
             const event = JSON.parse(message);
-            console.log('收到消息:', event);
-            
+            //复制一个event用来打印日志，但是event.delta 太长了，打印的时候，如果截取event.delta的前100个字符。但是不要改变event.delta的值
+            const eventForLog = JSON.parse(JSON.stringify(event));
+            if (eventForLog.delta) {
+                eventForLog.delta = eventForLog.delta.slice(0, 100);
+            }
+            console.log('收到消息:', eventForLog);
+
             if (event.type === 'response.audio.delta') {
                 const audioData = event.delta; // Base64编码的音频数据
                 // 发送音频数据给客户端
