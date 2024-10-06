@@ -19,6 +19,11 @@
             display: flex;
             flex-direction: column;
             align-items: center;
+            width: 100%;
+            max-width: 600px;
+            /* 添加最大宽度 */
+            padding: 20px;
+            /* 添加内边距 */
         }
 
         #talkButton {
@@ -39,8 +44,10 @@
             box-shadow: inset 20px 20px 60px #bebebe, inset -20px -20px 60px #ffffff;
         }
 
-        #waveform {
-            width: 300px;
+        #waveform,
+        #messageContainer {
+            width: 100%;
+            /* 改为100%宽度 */
             height: 100px;
             background-color: #fff;
             border-radius: 10px;
@@ -75,17 +82,18 @@
         }
 
         #messageContainer {
-            width: 300px;
+            box-sizing: border-box;
+            width: 100%;
+            /* 改为100%宽度 */
             height: 200px;
             margin-top: 20px;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
             overflow-y: auto;
             background-color: #fff;
+            padding: 10px;
         }
 
-        .message, .error-message {
+        .message,
+        .error-message {
             margin-bottom: 10px;
             padding: 5px;
             border-radius: 5px;
@@ -387,26 +395,26 @@
 
         function appendMessage(message, isError = false) {
             const messageContainer = document.getElementById('messageContainer');
-            
+
             if (!currentMessageElement) {
                 currentMessageElement = document.createElement('div');
                 currentMessageElement.className = isError ? 'error-message' : 'message';
-                
+
                 // 添加时间戳
                 const timestamp = new Date().toLocaleTimeString();
                 const timestampElement = document.createElement('span');
                 timestampElement.className = 'timestamp';
                 timestampElement.textContent = `[${timestamp}] `;
-                
+
                 currentMessageElement.appendChild(timestampElement);
                 messageContainer.appendChild(currentMessageElement);
             }
-            
+
             // 将消息内容添加到时间戳后面
             const messageContent = document.createElement('span');
             messageContent.textContent = message;
             currentMessageElement.appendChild(messageContent);
-            
+
             messageContainer.scrollTop = messageContainer.scrollHeight;
         }
 
