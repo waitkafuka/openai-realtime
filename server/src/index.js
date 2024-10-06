@@ -4,7 +4,6 @@ const http = require('http');
 require('dotenv').config();
 
 // 替换为您的apii.superx.chat的API密钥
-const API_KEY = process.env.OPENAI_API_KEY;
 
 const app = express();
 const server = http.createServer(app);
@@ -14,9 +13,9 @@ wss.on('connection', function connection(clientWs) {
     console.log('客户端已连接');
 
     // 连接到apii.superx.chat
-    const superxChatWs = new WebSocket('wss://apii.superx.chat/v1/realtime?model=gpt-4o-realtime-preview', {
+    const superxChatWs = new WebSocket(`wss://${process.env.API_BASE_HOST}/v1/realtime?model=gpt-4o-realtime-preview`, {
         headers: {
-            'Authorization': 'Bearer ' + API_KEY,
+            'Authorization': 'Bearer ' + process.env.OPENAI_API_KEY,
             'OpenAI-Beta': 'realtime=v1',
         },
     });
