@@ -25,12 +25,18 @@ wss.on('connection', function connection(clientWs) {
         console.log('已连接到apii.superx.chat');
         // 可以根据需要发送初始配置
         superxChatWs.send(JSON.stringify({
-            type: 'response.create',
-            response: {
-                modalities: ["text", "audio"],
-                instructions: "请协助用户。",
+            type: 'session.update',
+            session: {
+                turn_detection: null,
             }
         }));
+        // superxChatWs.send(JSON.stringify({
+        //     type: 'response.create',
+        //     response: {
+        //         modalities: ["text", "audio"],
+        //         instructions: "请协助用户。",
+        //     }
+        // }));
     });
 
     clientWs.on('message', function incoming(message) {
