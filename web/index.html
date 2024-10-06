@@ -7,9 +7,10 @@
     <style>
         body {
             display: flex;
-            justify-content: center;
+            flex-direction: column;
+            justify-content: flex-start;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh;
             margin: 0;
             background-color: #f0f0f0;
             font-family: Arial, sans-serif;
@@ -20,39 +21,54 @@
             flex-direction: column;
             align-items: center;
             width: 100%;
-            max-width: 600px;
-            /* 添加最大宽度 */
+            max-width: 100%;
             padding: 20px;
-            /* 添加内边距 */
+            box-sizing: border-box;
         }
 
         #talkButton {
             width: 150px;
             height: 150px;
             border-radius: 50%;
-            background: linear-gradient(145deg, #f0f0f0, #cacaca);
-            box-shadow: 20px 20px 60px #bebebe, -20px -20px 60px #ffffff;
+            background: linear-gradient(145deg, #f0f0ff, #d0d0ff);
+            box-shadow: 20px 20px 60px rgba(190, 190, 255, 0.5), -20px -20px 60px rgba(255, 255, 255, 0.8);
             border: none;
             outline: none;
             cursor: pointer;
             font-size: 16px;
-            color: #333;
+            color: #4a4a7f;
             transition: all 0.3s ease;
         }
 
         #talkButton:active {
-            box-shadow: inset 20px 20px 60px #bebebe, inset -20px -20px 60px #ffffff;
+            box-shadow: inset 20px 20px 60px rgba(190, 190, 255, 0.5), inset -20px -20px 60px rgba(255, 255, 255, 0.8);
+            color: #3a3a6f;
         }
 
-        #waveform,
+        #waveform {
+            width: 100%;
+            height: 100px;
+            max-width: 600px;
+            background: linear-gradient(to bottom, rgba(240, 240, 255, 0.8), rgba(220, 220, 255, 0.8));
+            margin-top: 20px;
+            border-radius: 0;
+            box-shadow: none;
+            margin-top: 100px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
         #messageContainer {
             width: 100%;
-            /* 改为100%宽度 */
-            height: 100px;
-            background-color: #fff;
+            max-width: 600px;
+            background: linear-gradient(to bottom, rgba(240, 240, 255, 0.8), rgba(220, 220, 255, 0.8));
             border-radius: 10px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             margin-top: 20px;
+            box-sizing: border-box;
+            height: 200px;
+            overflow-y: auto;
+            padding: 10px;
         }
 
         #textInput {
@@ -81,17 +97,6 @@
             background-color: #45a049;
         }
 
-        #messageContainer {
-            box-sizing: border-box;
-            width: 100%;
-            /* 改为100%宽度 */
-            height: 200px;
-            margin-top: 20px;
-            overflow-y: auto;
-            background-color: #fff;
-            padding: 10px;
-        }
-
         .message,
         .error-message {
             margin-bottom: 10px;
@@ -99,14 +104,13 @@
             border-radius: 5px;
             white-space: pre-wrap;
             word-wrap: break-word;
-        }
-
-        .message {
-            background-color: #e6f3ff;
+            background-color: rgba(255, 255, 255, 0.7);
+            /* 半透明白色背景 */
         }
 
         .error-message {
-            background-color: #ffebee;
+            background-color: rgba(255, 235, 238, 0.7);
+            /* 半透明浅红色背景 */
             color: #d32f2f;
         }
 
@@ -119,12 +123,13 @@
 </head>
 
 <body>
+
+    <canvas id="waveform"></canvas>
+    <div class="container">
+        <div id="messageContainer"></div>
+    </div>
     <div class="container">
         <button id="talkButton">按住说话</button>
-        <canvas id="waveform"></canvas>
-        <div id="messageContainer"></div>
-        <!-- <textarea id="textInput" placeholder="输入文本消息..."></textarea> -->
-        <!-- <button id="sendButton">发送</button> -->
     </div>
     <script>
         // Existing variables
@@ -358,7 +363,7 @@
             const gradient = waveformCtx.createLinearGradient(0, 0, 0, waveform.height);
             gradient.addColorStop(0, 'rgba(240, 240, 255, 0.8)');
             gradient.addColorStop(1, 'rgba(220, 220, 255, 0.8)');
-            
+
             waveformCtx.fillStyle = gradient;
             waveformCtx.fillRect(0, 0, waveform.width, waveform.height);
 
