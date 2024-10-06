@@ -73,6 +73,6 @@ function watchFiles() {
 }
 
 // 导出任务
-exports.default = gulp.series(minifyHTML, watchFiles);
+exports.default = gulp.series(minifyHTML);
 exports.minify = minifyHTML;
 exports.watch = watchFiles;
