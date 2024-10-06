@@ -1,9 +1,10 @@
 {
   "scripts": {
     "build": "gulp",
-    "dev": "gulp watch"
+    "dev": "gulp && gulp watch"
   },
   "dependencies": {
+    "dotenv": "16.4.5",
     "gulp": "5.0.0",
     "gulp-clean-css": "4.3.0",
     "gulp-htmlmin": "5.0.1",
