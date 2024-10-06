@@ -3,14 +3,22 @@ const express = require('express');
 const http = require('http');
 require('dotenv').config();
 
+// 添加一个全局变量来跟踪连接数
+let connectionCount = 0;
+
 // 替换为您的apii.superx.chat的API密钥
 
 const app = express();
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
+// 添加一个新的 HTTP 端点来返回当前连接数
+app.get('/connections', (req, res) => {
+    res.json({ connections: connectionCount });
+});
+
 wss.on('connection', function connection(clientWs) {
-    console.log('客户端已连接');
+    console.log('客户端已连接', connectionCount);
 
     // 连接到apii.superx.chat
     const superxChatWs = new WebSocket(`wss://${process.env.API_BASE_HOST}/v1/realtime?model=gpt-4o-realtime-preview`, {
@@ -76,7 +84,9 @@ wss.on('connection', function connection(clientWs) {
     });
 
     clientWs.on('close', function () {
-        console.log('客户端已断开连接');
+        console.log('客户端已断开连接', connectionCount);
+        // 减少连接计数
+        connectionCount--;
         if (superxChatWs.readyState === WebSocket.OPEN) {
             superxChatWs.close();
         }
