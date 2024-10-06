@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>实时语音交互</title>
+    <title>OpenAI realtime voice chat</title>
     <style>
         body {
             display: flex;
@@ -28,8 +28,8 @@
         }
 
         #talkButton {
-            width: 120px;
-            height: 120px;
+            width: 260px;
+            height: 260px;
             border-radius: 50%;
             background: linear-gradient(145deg, #f0f0ff, #d0d0ff);
             box-shadow: 10px 10px 30px rgba(190, 190, 255, 0.5), -10px -10px 30px rgba(255, 255, 255, 0.8);
@@ -121,9 +121,9 @@
 
         @media (max-width: 600px) {
             #talkButton {
-                width: 100px;
-                height: 100px;
-                font-size: 12px;
+                width: 200px;
+                height: 200px;
+                font-size: 18px;
             }
 
             #waveform {
@@ -154,6 +154,10 @@
     </div>
     <div class="container">
         <button id="talkButton">按住说话</button>
+        <div style="display: none;">
+            <textarea id="textInput" placeholder="输入文本消息..."></textarea>
+            <button id="sendButton">发送</button>
+        </div>
     </div>
     <script>
         // Existing variables
