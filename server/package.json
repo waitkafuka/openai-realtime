@@ -6,7 +6,7 @@
     "ws": "8.18.0"
   },
   "scripts": {
-    "dev": "nodemon index.js",
-    "start": "node index.js"
+    "dev": "nodemon ./src/index.js",
+    "start": "node ./src/index.js"
   }
 }
