@@ -258,10 +258,10 @@
             visualizerAnimationFrame = requestAnimationFrame(drawPlaybackWaveform);
 
             playbackAnalyser.getByteTimeDomainData(playbackDataArray);
-            drawWaveform(playbackDataArray);
+            drawWaveform(playbackDataArray); 
         }
 
-        function stopVisualizer() {
+        function stopVisualizer() {  
             if (visualizerAnimationFrame) {
                 cancelAnimationFrame(visualizerAnimationFrame);
                 visualizerAnimationFrame = null;
@@ -271,7 +271,7 @@
         }
 
         // WebSocket connection to the server
-        const ws = new WebSocket('wss://wss1.iigpt5.com'); // Update as needed
+        const ws = new WebSocket('ws://localhost:3008'); // Update as needed
 
         ws.onopen = function () {
             console.log('Connected to the server.');
