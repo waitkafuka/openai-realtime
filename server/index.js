@@ -128,6 +128,6 @@ wss.on('connection', function connection(clientWs) {
     });
 });
 
-server.listen(3000, function () {
-    console.log('服务器正在监听3000端口');
+server.listen(3008, function () {
+    console.log('服务器正在监听3008端口');
 });
