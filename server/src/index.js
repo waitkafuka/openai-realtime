@@ -18,6 +18,7 @@ app.get('/connections', (req, res) => {
 });
 
 wss.on('connection', function connection(clientWs) {
+    connectionCount++;
     console.log('客户端已连接', connectionCount);
 
     // 连接到apii.superx.chat
@@ -68,25 +69,25 @@ wss.on('connection', function connection(clientWs) {
             const event = {
                 type: 'conversation.item.create',
                 item: {
-                  type: 'message',
-                  role: 'user',
-                  content: [
-                    {
-                      type: 'input_text',
-                      text: data.content
-                    }
-                  ]
+                    type: 'message',
+                    role: 'user',
+                    content: [
+                        {
+                            type: 'input_text',
+                            text: data.content
+                        }
+                    ]
                 }
-              };
-              superxChatWs.send(JSON.stringify(event));
-              superxChatWs.send(JSON.stringify({type: 'response.create'}));
+            };
+            superxChatWs.send(JSON.stringify(event));
+            superxChatWs.send(JSON.stringify({ type: 'response.create' }));
         }
     });
 
     clientWs.on('close', function () {
-        console.log('客户端已断开连接', connectionCount);
         // 减少连接计数
         connectionCount--;
+        console.log('客户端已断开连接', connectionCount);
         if (superxChatWs.readyState === WebSocket.OPEN) {
             superxChatWs.close();
         }
