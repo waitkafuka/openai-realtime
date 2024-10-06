@@ -73,6 +73,40 @@
         #sendButton:hover {
             background-color: #45a049;
         }
+
+        #messageContainer {
+            width: 300px;
+            height: 200px;
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            overflow-y: auto;
+            background-color: #fff;
+        }
+
+        .message, .error-message {
+            margin-bottom: 10px;
+            padding: 5px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .message {
+            background-color: #e6f3ff;
+        }
+
+        .error-message {
+            background-color: #ffebee;
+            color: #d32f2f;
+        }
+
+        .timestamp {
+            font-size: 0.8em;
+            color: #666;
+            margin-right: 5px;
+        }
     </style>
 </head>
 
@@ -80,8 +114,9 @@
     <div class="container">
         <button id="talkButton">按住说话</button>
         <canvas id="waveform"></canvas>
-        <textarea id="textInput" placeholder="输入文本消息..."></textarea>
-        <button id="sendButton">发送</button>
+        <div id="messageContainer"></div>
+        <!-- <textarea id="textInput" placeholder="输入文本消息..."></textarea> -->
+        <!-- <button id="sendButton">发送</button> -->
     </div>
     <script>
         // Add these variables at the beginning of the script
@@ -104,7 +139,8 @@
             return float32Array;
         }
 
-        async function createAudioBuffer(audioContext, float32Array, sampleRate, numChannels) {
+        // 将这个函数改为同步方法
+        function createAudioBuffer(audioContext, float32Array, sampleRate, numChannels) {
             var frameCount = float32Array.length / numChannels;
             // 创建 AudioBuffer
             var audioBuffer = audioContext.createBuffer(numChannels, frameCount, sampleRate);
@@ -130,6 +166,7 @@
             source.start();
         }
 
+        // 修改 playAudioFromBase64PCM16 函数以使用同步的 createAudioBuffer
         function playAudioFromBase64PCM16(base64PCMData, sampleRate = 24000, numChannels = 1) {
             if (!audioContext) {
                 initAudioContext();
@@ -141,12 +178,11 @@
             const float32Array = convertPCM16ToFloat32(pcm16Array);
 
             // 创建 AudioBuffer 并填充数据，然后添加到队列
-            createAudioBuffer(audioContext, float32Array, sampleRate, numChannels).then((audioBuffer) => {
-                audioBufferQueue.push(audioBuffer);
-                if (!isPlaying) {
-                    playNextAudioBuffer();
-                }
-            });
+            const audioBuffer = createAudioBuffer(audioContext, float32Array, sampleRate, numChannels);
+            audioBufferQueue.push(audioBuffer);
+            if (!isPlaying) {
+                playNextAudioBuffer();
+            }
         }
 
         function playNextAudioBuffer() {
@@ -171,15 +207,21 @@
             console.log('已连接到服务器。');
         };
 
+        let currentMessageElement = null;
+
         ws.onmessage = function (event) {
             const data = JSON.parse(event.data);
             if (data.type === 'audio') {
+                console.log('收到音频数据:', data.audio.length);
                 playAudioFromBase64PCM16(data.audio);
             } else if (data.type === 'text') {
                 console.log('收到文本消息:', data.content);
-                // 这里可以添加显示文本消息的逻辑
+                appendMessage(data.content);
             } else if (data.type === 'error') {
                 console.error('服务器错误:', data.message);
+                // appendMessage('错误: ' + data.message, true);
+            } else if (data.type === 'response.audio_transcript.done') {
+                finishCurrentMessage();
             }
         };
 
@@ -341,6 +383,35 @@
                 ws.send(JSON.stringify({ type: 'text', content: text }));
                 textInput.value = '';
             }
+        }
+
+        function appendMessage(message, isError = false) {
+            const messageContainer = document.getElementById('messageContainer');
+            
+            if (!currentMessageElement) {
+                currentMessageElement = document.createElement('div');
+                currentMessageElement.className = isError ? 'error-message' : 'message';
+                
+                // 添加时间戳
+                const timestamp = new Date().toLocaleTimeString();
+                const timestampElement = document.createElement('span');
+                timestampElement.className = 'timestamp';
+                timestampElement.textContent = `[${timestamp}] `;
+                
+                currentMessageElement.appendChild(timestampElement);
+                messageContainer.appendChild(currentMessageElement);
+            }
+            
+            // 将消息内容添加到时间戳后面
+            const messageContent = document.createElement('span');
+            messageContent.textContent = message;
+            currentMessageElement.appendChild(messageContent);
+            
+            messageContainer.scrollTop = messageContainer.scrollHeight;
+        }
+
+        function finishCurrentMessage() {
+            currentMessageElement = null;
         }
     </script>
 </body>

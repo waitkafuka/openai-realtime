@@ -98,6 +98,13 @@ wss.on('connection', function connection(clientWs) {
                 // 处理错误
                 console.error('apii.superx.chat 错误:', event.error);
                 clientWs.send(JSON.stringify({ type: 'error', message: event.error.message }));
+            } else if (event.type === 'response.audio_transcript.delta') {
+                const textData = event.delta; // 文本数据
+                // 发送文本数据给客户端
+                clientWs.send(JSON.stringify({ type: 'text', content: textData }));
+            } else if (event.type === 'response.audio_transcript.done') {
+                console.log('音频转文字完成');
+                clientWs.send(JSON.stringify({ type: 'response.audio_transcript.done', content: '音频转文字完成' }));
             }
             // 可以根据需要处理其他事件类型
         } catch (error) {
