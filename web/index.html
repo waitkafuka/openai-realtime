@@ -127,37 +127,42 @@
         <!-- <button id="sendButton">发送</button> -->
     </div>
     <script>
-        // Add these variables at the beginning of the script
+        // Existing variables
         let audioContext;
         let audioBufferQueue = [];
         let isPlaying = false;
 
+        // Add these variables for playback visualizer
+        let playbackAnalyser = null;
+        let playbackDataArray;
+        let visualizerAnimationFrame;
+
         function initAudioContext() {
-            audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 24000 });
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 24000 });
+            }
         }
 
-        // 将 PCM16 (Int16Array) 转换为 Float32Array
+        // Convert PCM16 (Int16Array) to Float32Array
         function convertPCM16ToFloat32(pcm16Array) {
             var float32Array = new Float32Array(pcm16Array.length);
             for (var i = 0; i < pcm16Array.length; i++) {
                 var int = pcm16Array[i];
-                // 将 Int16 范围（-32768 到 32767）转换为 Float32 范围（-1.0 到 1.0）
+                // Convert Int16 range (-32768 to 32767) to Float32 range (-1.0 to 1.0)
                 float32Array[i] = int / 32768;
             }
             return float32Array;
         }
 
-        // 将这个函数改为同步方法
+        // Create AudioBuffer synchronously
         function createAudioBuffer(audioContext, float32Array, sampleRate, numChannels) {
             var frameCount = float32Array.length / numChannels;
-            // 创建 AudioBuffer
+            // Create AudioBuffer
             var audioBuffer = audioContext.createBuffer(numChannels, frameCount, sampleRate);
 
-            // 将数据填充到 AudioBuffer 中
+            // Fill AudioBuffer with data
             for (var channel = 0; channel < numChannels; channel++) {
-                // 取得对应声道的数据
                 var channelData = audioBuffer.getChannelData(channel);
-                // 将对应声道的数据复制到 AudioBuffer 中
                 for (var i = 0; i < frameCount; i++) {
                     channelData[i] = float32Array[i * numChannels + channel];
                 }
@@ -166,26 +171,16 @@
             return audioBuffer;
         }
 
-        function playAudioBuffer(audioContext, audioBuffer) {
-            var source = audioContext.createBufferSource();
-            source.buffer = audioBuffer;
-            // 连接到 AudioContext 的输出（扬声器）
-            source.connect(audioContext.destination);
-            source.start();
-        }
-
-        // 修改 playAudioFromBase64PCM16 函数以使用同步的 createAudioBuffer
+        // Modified function to play audio buffer with visualizer
         function playAudioFromBase64PCM16(base64PCMData, sampleRate = 24000, numChannels = 1) {
-            if (!audioContext) {
-                initAudioContext();
-            }
+            initAudioContext();
 
             const pcmArrayBuffer = base64ToArrayBuffer(base64PCMData);
-            // 创建 Int16Array
+            // Create Int16Array
             var pcm16Array = new Int16Array(pcmArrayBuffer);
             const float32Array = convertPCM16ToFloat32(pcm16Array);
 
-            // 创建 AudioBuffer 并填充数据，然后添加到队列
+            // Create AudioBuffer and add to queue
             const audioBuffer = createAudioBuffer(audioContext, float32Array, sampleRate, numChannels);
             audioBufferQueue.push(audioBuffer);
             if (!isPlaying) {
@@ -196,6 +191,8 @@
         function playNextAudioBuffer() {
             if (audioBufferQueue.length === 0) {
                 isPlaying = false;
+                // Stop drawing waveform
+                stopVisualizer();
                 return;
             }
 
@@ -203,16 +200,48 @@
             const audioBuffer = audioBufferQueue.shift();
             const source = audioContext.createBufferSource();
             source.buffer = audioBuffer;
-            source.connect(audioContext.destination);
+
+            // Create analyser node if not already created
+            if (!playbackAnalyser) {
+                playbackAnalyser = audioContext.createAnalyser();
+                playbackAnalyser.fftSize = 256; // Can adjust this value
+                playbackDataArray = new Uint8Array(playbackAnalyser.frequencyBinCount);
+            }
+
+            // Connect source -> analyser -> destination
+            source.connect(playbackAnalyser);
+            playbackAnalyser.connect(audioContext.destination);
+
             source.onended = playNextAudioBuffer;
             source.start(0);
+
+            // Start drawing waveform if not already started
+            if (!visualizerAnimationFrame) {
+                drawPlaybackWaveform();
+            }
         }
 
-        // 与后端建立WebSocket连接
-        const ws = new WebSocket('ws://localhost:3000'); // 假设后端运行在本地3000端口
+        function drawPlaybackWaveform() {
+            visualizerAnimationFrame = requestAnimationFrame(drawPlaybackWaveform);
+
+            playbackAnalyser.getByteTimeDomainData(playbackDataArray);
+            drawWaveform(playbackDataArray);
+        }
+
+        function stopVisualizer() {
+            if (visualizerAnimationFrame) {
+                cancelAnimationFrame(visualizerAnimationFrame);
+                visualizerAnimationFrame = null;
+            }
+            playbackAnalyser = null; // Reset analyser
+            waveformCtx.clearRect(0, 0, waveform.width, waveform.height);
+        }
+
+        // WebSocket connection to the server
+        const ws = new WebSocket('ws://localhost:3000'); // Update as needed
 
         ws.onopen = function () {
-            console.log('已连接到服务器。');
+            console.log('Connected to the server.');
         };
 
         let currentMessageElement = null;
@@ -220,14 +249,14 @@
         ws.onmessage = function (event) {
             const data = JSON.parse(event.data);
             if (data.type === 'audio') {
-                console.log('收到音频数据:', data.audio.length);
+                console.log('Received audio data:', data.audio.length);
                 playAudioFromBase64PCM16(data.audio);
             } else if (data.type === 'text') {
-                console.log('收到文本消息:', data.content);
+                console.log('Received text message:', data.content);
                 appendMessage(data.content);
             } else if (data.type === 'error') {
-                console.error('服务器错误:', data.message);
-                // appendMessage('错误: ' + data.message, true);
+                console.error('Server error:', data.message);
+                // appendMessage('Error: ' + data.message, true);
             } else if (data.type === 'response.audio_transcript.done') {
                 finishCurrentMessage();
             }
@@ -243,7 +272,7 @@
             return bytes.buffer;
         }
 
-        // 修改按钮事件处理
+        // Button event handling
         let recording = false;
         let processor;
         let analyser;
@@ -254,16 +283,18 @@
 
         button.addEventListener('mousedown', startRecording);
         button.addEventListener('mouseup', stopRecording);
+        button.addEventListener('mouseleave', stopRecording); // Stop recording if mouse leaves the button
         button.addEventListener('touchstart', startRecording);
         button.addEventListener('touchend', stopRecording);
 
         function startRecording() {
             if (recording) return;
             recording = true;
-            button.textContent = '松开发送';
+            button.textContent = 'Release to Send';
+
             navigator.mediaDevices.getUserMedia({ audio: true })
                 .then(function (stream) {
-                    audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 24000 });
+                    initAudioContext();
                     const source = audioContext.createMediaStreamSource(stream);
                     processor = audioContext.createScriptProcessor(2048, 1, 1);
                     analyser = audioContext.createAnalyser();
@@ -282,22 +313,22 @@
                         const base64Audio = base64EncodeAudio(float32Array);
                         ws.send(JSON.stringify({ type: 'audio', audio: base64Audio }));
 
-                        // 更新波形图
+                        // Update waveform during recording
                         analyser.getByteTimeDomainData(dataArray);
                         drawWaveform(dataArray);
                     };
                 })
                 .catch(function (err) {
-                    console.log('发生错误：' + err);
+                    console.log('Error: ' + err);
                 });
         }
 
         function stopRecording() {
             if (!recording) return;
             recording = false;
-            button.textContent = '按住说话';
+            button.textContent = 'Hold to Talk';
 
-            // 停止所有音频处理
+            // Stop all audio processing
             if (processor) {
                 processor.disconnect();
                 processor = null;
@@ -313,10 +344,10 @@
                 });
             }
 
-            // 发送音频结束标志
+            // Send audio end signal
             ws.send(JSON.stringify({ type: 'audio_commit' }));
 
-            // 清除波形图
+            // Clear waveform
             waveformCtx.clearRect(0, 0, waveform.width, waveform.height);
 
             console.log('Recording stopped and committed.');
@@ -332,7 +363,7 @@
             waveformCtx.beginPath();
 
             const sliceWidth = waveform.width * 1.0 / dataArray.length;
-            let x = waveform.width;
+            let x = 0;
 
             for (let i = 0; i < dataArray.length; i++) {
                 const v = dataArray[i] / 128.0;
@@ -344,10 +375,10 @@
                     waveformCtx.lineTo(x, y);
                 }
 
-                x -= sliceWidth;
+                x += sliceWidth;
             }
 
-            waveformCtx.lineTo(0, waveform.height / 2);
+            waveformCtx.lineTo(waveform.width, waveform.height / 2);
             waveformCtx.stroke();
         }
 
@@ -371,7 +402,7 @@
             return btoa(binary);
         }
 
-        // 设置画布大小
+        // Adjust canvas size
         function resizeCanvas() {
             waveform.width = waveform.clientWidth;
             waveform.height = waveform.clientHeight;
@@ -400,7 +431,7 @@
                 currentMessageElement = document.createElement('div');
                 currentMessageElement.className = isError ? 'error-message' : 'message';
 
-                // 添加时间戳
+                // Add timestamp
                 const timestamp = new Date().toLocaleTimeString();
                 const timestampElement = document.createElement('span');
                 timestampElement.className = 'timestamp';
@@ -410,7 +441,7 @@
                 messageContainer.appendChild(currentMessageElement);
             }
 
-            // 将消息内容添加到时间戳后面
+            // Add message content
             const messageContent = document.createElement('span');
             messageContent.textContent = message;
             currentMessageElement.appendChild(messageContent);
