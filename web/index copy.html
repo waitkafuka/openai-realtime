@@ -1,4 +1,166 @@
-<!doctypehtml><meta charset=UTF-8><meta content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"name=viewport><title>OpenAI realtime voice chat</title><style>body{display:flex;flex-direction:column;justify-content:flex-start;align-items:center;min-height:100vh;margin:0;background-color:#f0f0f0;font-family:Arial,sans-serif}.container{display:flex;flex-direction:column;align-items:center;width:100%;max-width:100%;padding:20px;box-sizing:border-box}#talkButton{width:260px;height:260px;border-radius:50%;background:linear-gradient(145deg,#f0f0ff,#d0d0ff);box-shadow:10px 10px 30px rgba(190,190,255,.5),-10px -10px 30px rgba(255,255,255,.8);border:none;outline:0;cursor:pointer;font-size:14px;color:#4a4a7f;transition:all .3s ease;-webkit-tap-highlight-color:transparent}#talkButton:active{box-shadow:inset 10px 10px 30px rgba(190,190,255,.5),inset -10px -10px 30px rgba(255,255,255,.8);color:#3a3a6f}#waveform{width:100%;height:80px;max-width:600px;background:linear-gradient(to bottom,rgba(240,240,255,.8),rgba(220,220,255,.8));margin-top:20px;border-radius:10px;box-shadow:0 4px 6px rgba(0,0,0,.1)}#messageContainer{width:100%;max-width:600px;background:linear-gradient(to bottom,rgba(240,240,255,.8),rgba(220,220,255,.8));border-radius:10px;box-shadow:0 4px 6px rgba(0,0,0,.1);margin-top:20px;box-sizing:border-box;height:300px;overflow-y:auto;padding:10px}#textInput{width:100%;max-width:300px;height:80px;margin-top:20px;padding:10px;border:1px solid #ccc;border-radius:5px;resize:none;font-size:14px;box-sizing:border-box}#sendButton{margin-top:10px;padding:10px 20px;background-color:#4caf50;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:16px}#sendButton:hover{background-color:#45a049}.error-message,.message{margin-bottom:10px;padding:5px;border-radius:5px;white-space:pre-wrap;word-wrap:break-word;background-color:rgba(255,255,255,.7)}.error-message{background-color:rgba(255,235,238,.7);color:#d32f2f}.timestamp{font-size:.8em;color:#666;margin-right:5px}@media (max-width:600px){#talkButton{width:200px;height:200px;font-size:18px}#waveform{height:60px}#messageContainer{height:200px}#textInput{height:60px}#sendButton{font-size:14px;padding:8px 16px}}</style><div class=container><canvas id=waveform></canvas><div id=messageContainer></div></div><div class=container><button id=talkButton>按住说话</button><div style=display:none><textarea id=textInput placeholder=输入文本消息...></textarea> <button id=sendButton>发送</button></div></div><script>// Existing variables
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>OpenAI realtime voice chat</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+            font-family: Arial, sans-serif;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 100%;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        #talkButton {
+            width: 260px;
+            height: 260px;
+            border-radius: 50%;
+            background: linear-gradient(145deg, #f0f0ff, #d0d0ff);
+            box-shadow: 10px 10px 30px rgba(190, 190, 255, 0.5), -10px -10px 30px rgba(255, 255, 255, 0.8);
+            border: none;
+            outline: none;
+            cursor: pointer;
+            font-size: 14px;
+            color: #4a4a7f;
+            transition: all 0.3s ease;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        #talkButton:active {
+            box-shadow: inset 10px 10px 30px rgba(190, 190, 255, 0.5), inset -10px -10px 30px rgba(255, 255, 255, 0.8);
+            color: #3a3a6f;
+        }
+
+        #waveform {
+            width: 100%;
+            height: 80px;
+            max-width: 600px;
+            background: linear-gradient(to bottom, rgba(240, 240, 255, 0.8), rgba(220, 220, 255, 0.8));
+            margin-top: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        #messageContainer {
+            width: 100%;
+            max-width: 600px;
+            background: linear-gradient(to bottom, rgba(240, 240, 255, 0.8), rgba(220, 220, 255, 0.8));
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-top: 20px;
+            box-sizing: border-box;
+            height: 300px;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        #textInput {
+            width: 100%;
+            max-width: 300px;
+            height: 80px;
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            resize: none;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+
+        #sendButton {
+            margin-top: 10px;
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        #sendButton:hover {
+            background-color: #45a049;
+        }
+
+        .message,
+        .error-message {
+            margin-bottom: 10px;
+            padding: 5px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            background-color: rgba(255, 255, 255, 0.7);
+        }
+
+        .error-message {
+            background-color: rgba(255, 235, 238, 0.7);
+            color: #d32f2f;
+        }
+
+        .timestamp {
+            font-size: 0.8em;
+            color: #666;
+            margin-right: 5px;
+        }
+
+        @media (max-width: 600px) {
+            #talkButton {
+                width: 200px;
+                height: 200px;
+                font-size: 18px;
+            }
+
+            #waveform {
+                height: 60px;
+            }
+
+            #messageContainer {
+                height: 200px;
+            }
+
+            #textInput {
+                height: 60px;
+            }
+
+            #sendButton {
+                font-size: 14px;
+                padding: 8px 16px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <canvas id="waveform"></canvas>
+        <div id="messageContainer"></div>
+    </div>
+    <div class="container">
+        <button id="talkButton">按住说话</button>
+        <div style="display: none;">
+            <textarea id="textInput" placeholder="输入文本消息..."></textarea>
+            <button id="sendButton">发送</button>
+        </div>
+    </div>
+    <script>
+        // Existing variables
         let audioContext;
         let audioBufferQueue = [];
         let isPlaying = false;
@@ -340,4 +502,18 @@
         // 防止页面滚动
         document.body.addEventListener('touchmove', function (event) {
             event.preventDefault();
-        }, { passive: false });</script><script>var _hmt=_hmt||[];!function(){var e=document.createElement("script");e.src="https://hm.baidu.com/hm.js?af396cec7dae400977b8dfde8ff1b9ef";var t=document.getElementsByTagName("script")[0];t.parentNode.insertBefore(e,t)}()</script>
+        }, { passive: false });
+    </script>
+    <script>
+        var _hmt = _hmt || [];
+        (function () {
+            var hm = document.createElement("script");
+            hm.src = "https://hm.baidu.com/hm.js?af396cec7dae400977b8dfde8ff1b9ef";
+            var s = document.getElementsByTagName("script")[0];
+            s.parentNode.insertBefore(hm, s);
+        })();
+    </script>
+
+</body>
+
+</html>
