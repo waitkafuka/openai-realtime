@@ -164,6 +164,7 @@
         let audioContext;
         let audioBufferQueue = [];
         let isPlaying = false;
+        let currentSource = null;
 
         // Add these variables for playback visualizer
         let playbackAnalyser = null;
@@ -216,7 +217,7 @@
             // Create AudioBuffer and add to queue
             const audioBuffer = createAudioBuffer(audioContext, float32Array, sampleRate, numChannels);
             audioBufferQueue.push(audioBuffer);
-            if (!isPlaying) {
+            if (!isPlaying && !recording) {
                 playNextAudioBuffer();
             }
         }
@@ -231,8 +232,8 @@
 
             isPlaying = true;
             const audioBuffer = audioBufferQueue.shift();
-            const source = audioContext.createBufferSource();
-            source.buffer = audioBuffer;
+            currentSource = audioContext.createBufferSource();
+            currentSource.buffer = audioBuffer;
 
             // Create analyser node if not already created
             if (!playbackAnalyser) {
@@ -242,11 +243,11 @@
             }
 
             // Connect source -> analyser -> destination
-            source.connect(playbackAnalyser);
+            currentSource.connect(playbackAnalyser);
             playbackAnalyser.connect(audioContext.destination);
 
-            source.onended = playNextAudioBuffer;
-            source.start(0);
+            currentSource.onended = playNextAudioBuffer;
+            currentSource.start(0);
 
             // Start drawing waveform if not already started
             if (!visualizerAnimationFrame) {
@@ -320,6 +321,13 @@
             recording = true;
             button.textContent = '松开发送';
 
+            // 立即发送 response.cancel 事件
+            ws.send(JSON.stringify({ type: 'response.cancel' }));
+
+            // 停止当前播放的音频并清空队列
+            stopCurrentAudioAndClearQueue();
+
+            // 其余的录音逻辑保持不变
             navigator.mediaDevices.getUserMedia({ audio: true })
                 .then(function (stream) {
                     initAudioContext();
@@ -503,6 +511,17 @@
         document.body.addEventListener('touchmove', function (event) {
             event.preventDefault();
         }, { passive: false });
+
+        // 添加新的函数来停止当前音频并清空队列
+        function stopCurrentAudioAndClearQueue() {
+            if (currentSource) {
+                currentSource.stop();
+                currentSource = null;
+            }
+            audioBufferQueue = [];
+            isPlaying = false;
+            stopVisualizer();
+        }
     </script>
     <script>
         var _hmt = _hmt || [];

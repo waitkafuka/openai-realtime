@@ -81,6 +81,10 @@ wss.on('connection', function connection(clientWs) {
             };
             superxChatWs.send(JSON.stringify(event));
             superxChatWs.send(JSON.stringify({ type: 'response.create' }));
+        } else if (data.type === 'response.cancel') {
+            // 转发 response.cancel 事件给 apii.superx.chat
+            superxChatWs.send(JSON.stringify({ type: 'response.cancel' }));
+            console.log('Sent response.cancel to apii.superx.chat');
         }
     });
 
