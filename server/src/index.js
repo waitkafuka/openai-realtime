@@ -22,7 +22,7 @@ wss.on('connection', function connection(clientWs) {
     console.log('客户端已连接', connectionCount);
 
     // 连接到apii.superx.chat
-    const superxChatWs = new WebSocket(`ws://${process.env.API_BASE_HOST}/v1/realtime?model=gpt-4o-realtime-preview`, {
+    const superxChatWs = new WebSocket(`wss://${process.env.API_BASE_HOST}/v1/realtime?model=gpt-4o-realtime-preview`, {
         headers: {
             'Authorization': 'Bearer ' + process.env.OPENAI_API_KEY,
             'OpenAI-Beta': 'realtime=v1',
