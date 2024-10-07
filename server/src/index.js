@@ -6,7 +6,7 @@ require('dotenv').config();
 // 添加一个全局变量来跟踪连接数
 let connectionCount = 0;
 
-// 替换为您的apii.superx.chat的API密钥
+// 替换为您的openai websocket的API密钥
 
 const app = express();
 const server = http.createServer(app);
@@ -21,8 +21,8 @@ wss.on('connection', function connection(clientWs) {
     connectionCount++;
     console.log('客户端已连接', connectionCount);
 
-    // 连接到apii.superx.chat
-    const superxChatWs = new WebSocket(`wss://${process.env.API_BASE_HOST}/v1/realtime?model=gpt-4o-realtime-preview`, {
+    // 连接到openai websocket
+    const superxChatWs = new WebSocket(`ws://${process.env.API_BASE_HOST}/v1/realtime?model=gpt-4o-realtime-preview`, {
         headers: {
             'Authorization': 'Bearer ' + process.env.OPENAI_API_KEY,
             'OpenAI-Beta': 'realtime=v1',
@@ -30,7 +30,7 @@ wss.on('connection', function connection(clientWs) {
     });
 
     superxChatWs.on('open', function () {
-        console.log('已连接到apii.superx.chat');
+        console.log('已连接到openai websocket');
         // 可以根据需要发送初始配置
         superxChatWs.send(JSON.stringify({
             type: 'session.update',
@@ -50,7 +50,7 @@ wss.on('connection', function connection(clientWs) {
     clientWs.on('message', function incoming(message) {
         const data = JSON.parse(message);
         if (data.type === 'audio') {
-            // 发送input_audio_buffer.append消息给apii.superx.chat
+            // 发送input_audio_buffer.append消息给openai websocket
             superxChatWs.send(JSON.stringify({
                 type: 'input_audio_buffer.append',
                 audio: data.audio
@@ -82,9 +82,9 @@ wss.on('connection', function connection(clientWs) {
             superxChatWs.send(JSON.stringify(event));
             superxChatWs.send(JSON.stringify({ type: 'response.create' }));
         } else if (data.type === 'response.cancel') {
-            // 转发 response.cancel 事件给 apii.superx.chat
+            // 转发 response.cancel 事件给 openai websocket
             superxChatWs.send(JSON.stringify({ type: 'response.cancel' }));
-            console.log('Sent response.cancel to apii.superx.chat');
+            console.log('Sent response.cancel to openai websocket');
         }
     });
 
@@ -116,7 +116,7 @@ wss.on('connection', function connection(clientWs) {
                 console.log('音频发送完成');
             } else if (event.type === 'error') {
                 // 处理错误
-                console.error('apii.superx.chat 错误:', event.error);
+                console.error('openai websocket 错误:', event.error);
                 clientWs.send(JSON.stringify({ type: 'error', message: event.error.message }));
             } else if (event.type === 'response.audio_transcript.delta') {
                 const textData = event.delta; // 文本数据
@@ -128,17 +128,17 @@ wss.on('connection', function connection(clientWs) {
             }
             // 可以根据需要处理其他事件类型
         } catch (error) {
-            console.error('处理 apii.superx.chat 消息时出错:', error);
+            console.error('处理 openai websocket 消息时出错:', error);
             clientWs.send(JSON.stringify({ type: 'error', message: '服务器处理消息时出错' }));
         }
     });
 
     superxChatWs.on('close', function () {
-        console.log('与apii.superx.chat的连接已断开');
+        console.log('与openai websocket的连接已断开');
     });
 
     superxChatWs.on('error', function (error) {
-        console.error('apii.superx.chat连接错误：', error);
+        console.error('openai websocket连接错误：', error);
     });
 });
 
