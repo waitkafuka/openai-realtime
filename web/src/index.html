@@ -46,7 +46,7 @@
                 height: 130px;
                 border-radius: 50%;
                 background: linear-gradient(145deg,#f0f0ff,#d0d0ff);
-                box-shadow: 10px 10px 30px rgba(190,190,255,.5),-10px -10px 30px rgba(255,255,255,.8);
+                box-shadow: 10px 10px 30px rgba(190,190,255,.5),-3px -3px 30px rgba(255,255,255,.8);
                 border: none;
                 outline: 0;
                 cursor: pointer;
@@ -58,11 +58,28 @@
                 bottom: 150px;
             }
 
+            #talkButton .iconfont{
+                font-size: 50px;
+                font-weight: 700;
+            }
+
             #talkButton:active {
                 box-shadow: inset 10px 10px 30px rgba(190,190,255,.5),inset -10px -10px 30px rgba(255,255,255,.8);
                 color: #3a3a6f;
                 position: fixed;
                 bottom: 150px;
+            }
+
+            #talkButton:active i {
+                animation: wave 0.5s infinite;
+            }
+
+            @keyframes wave {
+                0%   { transform: translateY(0); }
+                25%  { transform: translateY(-5px); }
+                50%  { transform: translateY(0); }
+                75%  { transform: translateY(5px); }
+                100% { transform: translateY(0); }
             }
 
             #waveform {
@@ -172,22 +189,56 @@
                 padding-top: 20px;
             }
 
-            /* 定义呼吸动画 */
-            @keyframes breathing {
-                0% {
-                    transform: scale(1);
-                }
-                50% {
-                    transform: scale(1.1);
-                }
-                100% {
-                    transform: scale(1);
-                }
+            /* 添加波浪按钮图标动画样式 */
+            @keyframes wave-animation {
+                0% { transform: scale(1.0); }
+                50% { transform: scale(1.2); }
+                100% { transform: scale(1.0); }
+            }
+            .wave {
+                animation: wave-animation 1s infinite;
             }
 
-            /* 应用于图标的动画类 */
-            .breathing {
-                animation: breathing 2s infinite;
+            /* 在现有的样式表中添加以下内容 */
+
+            .recording-dots {
+                display: none;
+                justify-content: center;
+                align-items: center;
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+            }
+
+            .recording-dots .dot {
+                width: 10px;
+                height: 10px;
+                background-color: #6531ff;
+                border-radius: 50%;
+                margin: 0 5px;
+                animation: dotPulse 1.5s infinite ease-in-out;
+            }
+
+            .recording-dots .dot:nth-child(2) {
+                animation-delay: 0.5s;
+            }
+
+            .recording-dots .dot:nth-child(3) {
+                animation-delay: 1s;
+            }
+
+            @keyframes dotPulse {
+                0%, 100% { transform: scale(1); }
+                50% { transform: scale(1.5); }
+            }
+
+            #talkButton.recording .iconfont {
+                display: none;
+            }
+
+            #talkButton.recording .recording-dots {
+                display: flex;
             }
 
         </style>
@@ -210,6 +261,11 @@
         <div class="container">
             <button id="talkButton">
                 <i class="iconfont icon-shiwu-maikefeng" style="color: #6531ff;"></i>
+                <div class="recording-dots">
+                    <span class="dot"></span>
+                    <span class="dot"></span>
+                    <span class="dot"></span>
+                </div>
             </button>
             <div style="display: none;">
                 <textarea id="textInput" placeholder="输入文本消息..."></textarea>
@@ -297,56 +353,64 @@
             const button = document.getElementById("talkButton")
               , waveform = document.getElementById("waveform")
               , waveformCtx = waveform.getContext("2d");
+            // 获取 icon 元素
+            const iconElement = document.querySelector("#talkButton .iconfont");
             function startRecording(e) {
-                e.preventDefault(),
-                recording || (recording = !0,
-                button.textContent = "松开发送",
-                ws.send(JSON.stringify({
-                    type: "response.cancel"
-                })),
-                stopCurrentAudioAndClearQueue(),
-                navigator.mediaDevices.getUserMedia({
-                    audio: !0
-                }).then((function(e) {
-                    initAudioContext();
-                    const t = audioContext.createMediaStreamSource(e);
-                    processor = audioContext.createScriptProcessor(2048, 1, 1),
-                    analyser = audioContext.createAnalyser(),
-                    analyser.fftSize = 256;
-                    const n = analyser.frequencyBinCount
-                      , o = new Uint8Array(n);
-                    t.connect(analyser),
-                    analyser.connect(processor),
-                    processor.connect(audioContext.destination),
-                    processor.onaudioprocess = function(e) {
-                        if (!recording)
-                            return;
-                        const t = base64EncodeAudio(e.inputBuffer.getChannelData(0));
-                        ws.send(JSON.stringify({
-                            type: "audio",
-                            audio: t
-                        })),
-                        analyser.getByteTimeDomainData(o),
-                        drawWaveform(o)
-                    }
+                e.preventDefault();
+                if (!recording) {
+                    recording = true;
+                    ws.send(JSON.stringify({
+                        type: "response.cancel"
+                    }));
+                    stopCurrentAudioAndClearQueue();
+                    button.classList.add("recording");  // 添加recording类
+                    navigator.mediaDevices.getUserMedia({
+                        audio: true
+                    }).then(function(stream) {
+                        initAudioContext();
+                        const t = audioContext.createMediaStreamSource(stream);
+                        processor = audioContext.createScriptProcessor(2048, 1, 1),
+                        analyser = audioContext.createAnalyser(),
+                        analyser.fftSize = 256;
+                        const n = analyser.frequencyBinCount
+                          , o = new Uint8Array(n);
+                        t.connect(analyser),
+                        analyser.connect(processor),
+                        processor.connect(audioContext.destination),
+                        processor.onaudioprocess = function(e) {
+                            if (!recording)
+                                return;
+                            const t = base64EncodeAudio(e.inputBuffer.getChannelData(0));
+                            ws.send(JSON.stringify({
+                                type: "audio",
+                                audio: t
+                            })),
+                            analyser.getByteTimeDomainData(o),
+                            drawWaveform(o)
+                        }
+                    }).catch(function(err) {
+                        console.log("Error: " + err);
+                    });
                 }
-                )).catch((function(e) {
-                    console.log("Error: " + e)
-                }
-                )))
             }
             function stopRecording() {
-                recording && (recording = !1,
-                button.textContent = "按住说话",
-                processor && (processor.disconnect(),
-                processor = null),
-                analyser && (analyser.disconnect(),
-                analyser = null),
-                ws.send(JSON.stringify({
-                    type: "audio_commit"
-                })),
-                waveformCtx.clearRect(0, 0, waveform.width, waveform.height),
-                console.log("Recording stopped and committed."))
+                if (recording) {
+                    recording = false;
+                    button.classList.remove("recording");  // 移除recording类
+                    if (processor) {
+                        processor.disconnect();
+                        processor = null;
+                    }
+                    if (analyser) {
+                        analyser.disconnect();
+                        analyser = null;
+                    }
+                    ws.send(JSON.stringify({
+                        type: "audio_commit"
+                    }));
+                    waveformCtx.clearRect(0, 0, waveform.width, waveform.height);
+                    console.log("Recording stopped and committed.");
+                }
             }
             function drawWaveform(e) {
                 const t = waveformCtx.createLinearGradient(0, 0, 0, waveform.height);
