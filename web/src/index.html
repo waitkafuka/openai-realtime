@@ -1,538 +1,457 @@
 <!DOCTYPE html>
 <html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+        <title>OpenAI Realtime Voice Chat</title>
+        <style>
+            body {
+                min-height: 100vh;
+                margin: 0;
+                background: linear-gradient(to bottom,#9533ff,#6131ff);
+                font-family: Arial,sans-serif;
+                color: #333;
+            }
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>OpenAI Realtime Voice Chat</title>
-    <style>
-        body {
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-start;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-            background-color: #f0f0f0;
-            font-family: Arial, sans-serif;
-        }
+            * {
+                margin: 0;
+                padding: 0;
+            }
 
-        .container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            width: 100%;
-            max-width: 100%;
-            padding: 20px;
-            box-sizing: border-box;
-        }
-
-        #talkButton {
-            width: 260px;
-            height: 260px;
-            border-radius: 50%;
-            background: linear-gradient(145deg, #f0f0ff, #d0d0ff);
-            box-shadow: 10px 10px 30px rgba(190, 190, 255, 0.5), -10px -10px 30px rgba(255, 255, 255, 0.8);
-            border: none;
-            outline: none;
-            cursor: pointer;
-            font-size: 14px;
-            color: #4a4a7f;
-            transition: all 0.3s ease;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        #talkButton:active {
-            box-shadow: inset 10px 10px 30px rgba(190, 190, 255, 0.5), inset -10px -10px 30px rgba(255, 255, 255, 0.8);
-            color: #3a3a6f;
-        }
-
-        #waveform {
-            width: 100%;
-            height: 80px;
-            max-width: 600px;
-            background: linear-gradient(to bottom, rgba(240, 240, 255, 0.8), rgba(220, 220, 255, 0.8));
-            margin-top: 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-
-        #messageContainer {
-            width: 100%;
-            max-width: 600px;
-            background: linear-gradient(to bottom, rgba(240, 240, 255, 0.8), rgba(220, 220, 255, 0.8));
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            margin-top: 20px;
-            box-sizing: border-box;
-            height: 300px;
-            overflow-y: auto;
-            padding: 10px;
-        }
-
-        #textInput {
-            width: 100%;
-            max-width: 300px;
-            height: 80px;
-            margin-top: 20px;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            resize: none;
-            font-size: 14px;
-            box-sizing: border-box;
-        }
-
-        #sendButton {
-            margin-top: 10px;
-            padding: 10px 20px;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 16px;
-        }
-
-        #sendButton:hover {
-            background-color: #45a049;
-        }
-
-        .message,
-        .error-message {
-            margin-bottom: 10px;
-            padding: 5px;
-            border-radius: 5px;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            background-color: rgba(255, 255, 255, 0.7);
-        }
-
-        .error-message {
-            background-color: rgba(255, 235, 238, 0.7);
-            color: #d32f2f;
-        }
-
-        .timestamp {
-            font-size: 0.8em;
-            color: #666;
-            margin-right: 5px;
-        }
-
-        @media (max-width: 600px) {
-            #talkButton {
-                width: 200px;
-                height: 200px;
+            .welcome {
                 font-size: 18px;
+                color: #fff;
+                margin-left: 20px
+            }
+
+            i.icon-Chat {
+                font-size: 28px;
+                color: #fff;
+                margin-left: 20px;
+                margin-top: 20px;
+            }
+
+            .container {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                width: 100%;
+                max-width: 100%;
+                padding: 20px;
+                box-sizing: border-box
+            }
+
+            #talkButton {
+                width: 130px;
+                height: 130px;
+                border-radius: 50%;
+                background: linear-gradient(145deg,#f0f0ff,#d0d0ff);
+                box-shadow: 10px 10px 30px rgba(190,190,255,.5),-10px -10px 30px rgba(255,255,255,.8);
+                border: none;
+                outline: 0;
+                cursor: pointer;
+                font-size: 14px;
+                color: #4a4a7f;
+                transition: all .3s ease;
+                -webkit-tap-highlight-color: transparent;
+                position: fixed;
+                bottom: 150px;
+            }
+
+            #talkButton:active {
+                box-shadow: inset 10px 10px 30px rgba(190,190,255,.5),inset -10px -10px 30px rgba(255,255,255,.8);
+                color: #3a3a6f;
+                position: fixed;
+                bottom: 150px;
             }
 
             #waveform {
-                height: 60px;
+                display: none;
+                width: 100%;
+                height: 80px;
+                max-width: 600px;
+                background: linear-gradient(to bottom,rgba(240,240,255,.8),rgba(220,220,255,.8));
+                margin-top: 20px;
+                border-radius: 10px;
+                box-shadow: 0 4px 6px rgba(0,0,0,.1)
             }
 
             #messageContainer {
-                height: 200px;
+                width: 100%;
+                background: #fff;
+                border-radius: 10px;
+                box-shadow: 0 4px 6px rgba(0,0,0,.1);
+                margin-top: 20px;
+                box-sizing: border-box;
+                height: 300px;
+                overflow-y: auto;
+                padding: 10px
             }
 
             #textInput {
-                height: 60px;
+                width: 100%;
+                max-width: 300px;
+                height: 80px;
+                margin-top: 20px;
+                padding: 10px;
+                border: 1px solid #ccc;
+                border-radius: 5px;
+                resize: none;
+                font-size: 14px;
+                box-sizing: border-box
             }
 
             #sendButton {
-                font-size: 14px;
-                padding: 8px 16px;
+                margin-top: 10px;
+                padding: 10px 20px;
+                background-color: #4caf50;
+                color: #fff;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+                font-size: 16px
             }
-        }
-    </style>
-</head>
 
-<body>
+            #sendButton:hover {
+                background-color: #45a049
+            }
 
-    <div class="container">
-        <canvas id="waveform"></canvas>
-        <div id="messageContainer"></div>
-    </div>
-    <div class="container">
-        <button id="talkButton">按住说话</button>
-        <div style="display: none;">
-            <textarea id="textInput" placeholder="输入文本消息..."></textarea>
-            <button id="sendButton">发送</button>
+            .error-message,.message {
+                margin-bottom: 10px;
+                padding: 5px;
+                border-radius: 5px;
+                white-space: pre-wrap;
+                word-wrap: break-word;
+                background-color: rgba(255,255,255,.7)
+            }
+
+            .error-message {
+                background-color: rgba(255,235,238,.7);
+                color: #d32f2f
+            }
+
+            .timestamp {
+                font-size: .8em;
+                color: #666;
+                margin-right: 5px
+            }
+
+            @media (max-width: 600px) {
+
+                #waveform {
+                    height: 60px
+                }
+
+                #messageContainer {
+                    /* height: 200px */
+                }
+
+                #textInput {
+                    height: 60px
+                }
+
+                #sendButton {
+                    font-size: 14px;
+                    padding: 8px 16px
+                }
+            }
+
+            h1.title {
+                font-size: 27px;
+                font-family: 'Arial Black';
+                background: linear-gradient(to right,#60fffd,#f9ffd3);
+                -webkit-background-clip: text;
+                color: transparent;
+                text-align: left;
+                margin-top: 40px;
+                padding-left: 20px;
+                box-sizing: border-box
+            }
+
+            .header {
+                padding-top: 20px;
+            }
+
+            /* 定义呼吸动画 */
+            @keyframes breathing {
+                0% {
+                    transform: scale(1);
+                }
+                50% {
+                    transform: scale(1.1);
+                }
+                100% {
+                    transform: scale(1);
+                }
+            }
+
+            /* 应用于图标的动画类 */
+            .breathing {
+                animation: breathing 2s infinite;
+            }
+
+        </style>
+        <link rel="stylesheet" href="//at.alicdn.com/t/c/font_4717208_c3xs9zajojs.css">
+    </head>
+    <body>
+        <h1 class="title">Audio Chat</h1>
+        <div class="header">
+            <i class="iconfont icon-Chat"></i>
         </div>
-    </div>
-    <script>
-        // Existing variables
-        let audioContext;
-        let audioBufferQueue = [];
-        let isPlaying = false;
-        let currentSource = null;
-
-        // Add these variables for playback visualizer
-        let playbackAnalyser = null;
-        let playbackDataArray;
-        let visualizerAnimationFrame;
-
-        function initAudioContext() {
-            if (!audioContext) {
-                audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 24000 });
+        <div class="welcome">
+            <p>
+                您好，我是AI助手<br>有什么可以帮您的吗？
+            </p>
+        </div>
+        <div class="container">
+            <canvas id="waveform"></canvas>
+            <div id="messageContainer"></div>
+        </div>
+        <div class="container">
+            <button id="talkButton">
+                <i class="iconfont icon-shiwu-maikefeng" style="color: #6531ff;"></i>
+            </button>
+            <div style="display: none;">
+                <textarea id="textInput" placeholder="输入文本消息..."></textarea>
+                <button id="sendButton">发送</button>
+            </div>
+        </div>
+        <script>
+            let audioContext, playbackDataArray, visualizerAnimationFrame, audioBufferQueue = [], isPlaying = !1, currentSource = null, playbackAnalyser = null;
+            function initAudioContext() {
+                audioContext || (audioContext = new (window.AudioContext || window.webkitAudioContext)({
+                    sampleRate: 24e3
+                }))
             }
-        }
-
-        // Convert PCM16 (Int16Array) to Float32Array
-        function convertPCM16ToFloat32(pcm16Array) {
-            var float32Array = new Float32Array(pcm16Array.length);
-            for (var i = 0; i < pcm16Array.length; i++) {
-                var int = pcm16Array[i];
-                // Convert Int16 range (-32768 to 32767) to Float32 range (-1.0 to 1.0)
-                float32Array[i] = int / 32768;
-            }
-            return float32Array;
-        }
-
-        // Create AudioBuffer synchronously
-        function createAudioBuffer(audioContext, float32Array, sampleRate, numChannels) {
-            var frameCount = float32Array.length / numChannels;
-            // Create AudioBuffer
-            var audioBuffer = audioContext.createBuffer(numChannels, frameCount, sampleRate);
-
-            // Fill AudioBuffer with data
-            for (var channel = 0; channel < numChannels; channel++) {
-                var channelData = audioBuffer.getChannelData(channel);
-                for (var i = 0; i < frameCount; i++) {
-                    channelData[i] = float32Array[i * numChannels + channel];
+            function convertPCM16ToFloat32(e) {
+                for (var t = new Float32Array(e.length), n = 0; n < e.length; n++) {
+                    var o = e[n];
+                    t[n] = o / 32768
                 }
+                return t
             }
-
-            return audioBuffer;
-        }
-
-        // Modified function to play audio buffer with visualizer
-        function playAudioFromBase64PCM16(base64PCMData, sampleRate = 24000, numChannels = 1) {
-            initAudioContext();
-
-            const pcmArrayBuffer = base64ToArrayBuffer(base64PCMData);
-            // Create Int16Array
-            var pcm16Array = new Int16Array(pcmArrayBuffer);
-            const float32Array = convertPCM16ToFloat32(pcm16Array);
-
-            // Create AudioBuffer and add to queue
-            const audioBuffer = createAudioBuffer(audioContext, float32Array, sampleRate, numChannels);
-            audioBufferQueue.push(audioBuffer);
-            if (!isPlaying && !recording) {
-                playNextAudioBuffer();
+            function createAudioBuffer(e, t, n, o) {
+                for (var r = t.length / o, a = e.createBuffer(o, r, n), i = 0; i < o; i++)
+                    for (var s = a.getChannelData(i), c = 0; c < r; c++)
+                        s[c] = t[c * o + i];
+                return a
             }
-        }
-
-        function playNextAudioBuffer() {
-            if (audioBufferQueue.length === 0) {
-                isPlaying = false;
-                // Stop drawing waveform
-                stopVisualizer();
-                return;
+            function playAudioFromBase64PCM16(e, t=24e3, n=1) {
+                initAudioContext();
+                const o = base64ToArrayBuffer(e);
+                const r = convertPCM16ToFloat32(new Int16Array(o))
+                  , a = createAudioBuffer(audioContext, r, t, n);
+                audioBufferQueue.push(a),
+                isPlaying || recording || playNextAudioBuffer()
             }
-
-            isPlaying = true;
-            const audioBuffer = audioBufferQueue.shift();
-            currentSource = audioContext.createBufferSource();
-            currentSource.buffer = audioBuffer;
-
-            // Create analyser node if not already created
-            if (!playbackAnalyser) {
-                playbackAnalyser = audioContext.createAnalyser();
-                playbackAnalyser.fftSize = 256; // Can adjust this value
-                playbackDataArray = new Uint8Array(playbackAnalyser.frequencyBinCount);
+            function playNextAudioBuffer() {
+                if (0 === audioBufferQueue.length)
+                    return isPlaying = !1,
+                    void stopVisualizer();
+                isPlaying = !0;
+                const e = audioBufferQueue.shift();
+                currentSource = audioContext.createBufferSource(),
+                currentSource.buffer = e,
+                playbackAnalyser || (playbackAnalyser = audioContext.createAnalyser(),
+                playbackAnalyser.fftSize = 256,
+                playbackDataArray = new Uint8Array(playbackAnalyser.frequencyBinCount)),
+                currentSource.connect(playbackAnalyser),
+                playbackAnalyser.connect(audioContext.destination),
+                currentSource.onended = playNextAudioBuffer,
+                currentSource.start(0),
+                visualizerAnimationFrame || drawPlaybackWaveform()
             }
-
-            // Connect source -> analyser -> destination
-            currentSource.connect(playbackAnalyser);
-            playbackAnalyser.connect(audioContext.destination);
-
-            currentSource.onended = playNextAudioBuffer;
-            currentSource.start(0);
-
-            // Start drawing waveform if not already started
-            if (!visualizerAnimationFrame) {
-                drawPlaybackWaveform();
+            function drawPlaybackWaveform() {
+                visualizerAnimationFrame = requestAnimationFrame(drawPlaybackWaveform),
+                playbackAnalyser.getByteTimeDomainData(playbackDataArray),
+                drawWaveform(playbackDataArray)
             }
-        }
-
-        function drawPlaybackWaveform() {
-            visualizerAnimationFrame = requestAnimationFrame(drawPlaybackWaveform);
-
-            playbackAnalyser.getByteTimeDomainData(playbackDataArray);
-            drawWaveform(playbackDataArray); 
-        }
-
-        function stopVisualizer() { 
-            if (visualizerAnimationFrame) {
-                cancelAnimationFrame(visualizerAnimationFrame);
-                visualizerAnimationFrame = null;
+            function stopVisualizer() {
+                visualizerAnimationFrame && (cancelAnimationFrame(visualizerAnimationFrame),
+                visualizerAnimationFrame = null),
+                playbackAnalyser = null,
+                waveformCtx.clearRect(0, 0, waveform.width, waveform.height)
             }
-            playbackAnalyser = null; // Reset analyser 
-            waveformCtx.clearRect(0, 0, waveform.width, waveform.height);
-        }
-
-        // WebSocket connection to the server
-        const ws = new WebSocket('%%WS_SERVER_URL%%'); // Update as needed
-
-        ws.onopen = function () {
-            console.log('Connected to the server.');
-        };
-
-        let currentMessageElement = null;
-
-        ws.onmessage = function (event) {
-            const data = JSON.parse(event.data);
-            if (data.type === 'audio') {
-                console.log('Received audio data:', data.audio.length);
-                playAudioFromBase64PCM16(data.audio);
-            } else if (data.type === 'text') {
-                console.log('Received text message:', data.content);
-                appendMessage(data.content);
-            } else if (data.type === 'error') {
-                console.error('Server error:', data.message);
-                // appendMessage('Error: ' + data.message, true);
-            } else if (data.type === 'response.audio_transcript.done') {
-                finishCurrentMessage();
+            const ws = new WebSocket("ws://localhost:3008");
+            ws.onopen = function() {
+                console.log("Connected to the server.")
             }
-        };
-
-        function base64ToArrayBuffer(base64) {
-            const binaryString = window.atob(base64);
-            const len = binaryString.length;
-            const bytes = new Uint8Array(len);
-            for (let i = 0; i < len; i++) {
-                bytes[i] = binaryString.charCodeAt(i);
+            ;
+            let currentMessageElement = null;
+            function base64ToArrayBuffer(e) {
+                const t = window.atob(e)
+                  , n = t.length
+                  , o = new Uint8Array(n);
+                for (let e = 0; e < n; e++)
+                    o[e] = t.charCodeAt(e);
+                return o.buffer
             }
-            return bytes.buffer;
-        }
-
-        // Button event handling
-        let recording = false;
-        let processor;
-        let analyser;
-
-        const button = document.getElementById('talkButton');
-        const waveform = document.getElementById('waveform');
-        const waveformCtx = waveform.getContext('2d');
-
-        function startRecording(event) {
-            event.preventDefault(); // 防止默认行为，如滚动
-            if (recording) return;
-            recording = true;
-            button.textContent = '松开发送';
-
-            // 立即发送 response.cancel 事件
-            ws.send(JSON.stringify({ type: 'response.cancel' }));
-
-            // 停止当前播放的音频并清空队列
-            stopCurrentAudioAndClearQueue();
-
-            // 其余的录音逻辑保持不变
-            navigator.mediaDevices.getUserMedia({ audio: true })
-                .then(function (stream) {
+            ws.onmessage = function(e) {
+                const t = JSON.parse(e.data);
+                "audio" === t.type ? (console.log("Received audio data:", t.audio.length),
+                playAudioFromBase64PCM16(t.audio)) : "text" === t.type ? (console.log("Received text message:", t.content),
+                appendMessage(t.content)) : "error" === t.type ? console.error("Server error:", t.message) : "response.audio_transcript.done" === t.type && finishCurrentMessage()
+            }
+            ;
+            let processor, analyser, recording = !1;
+            const button = document.getElementById("talkButton")
+              , waveform = document.getElementById("waveform")
+              , waveformCtx = waveform.getContext("2d");
+            function startRecording(e) {
+                e.preventDefault(),
+                recording || (recording = !0,
+                button.textContent = "松开发送",
+                ws.send(JSON.stringify({
+                    type: "response.cancel"
+                })),
+                stopCurrentAudioAndClearQueue(),
+                navigator.mediaDevices.getUserMedia({
+                    audio: !0
+                }).then((function(e) {
                     initAudioContext();
-                    const source = audioContext.createMediaStreamSource(stream);
-                    processor = audioContext.createScriptProcessor(2048, 1, 1);
-                    analyser = audioContext.createAnalyser();
-
+                    const t = audioContext.createMediaStreamSource(e);
+                    processor = audioContext.createScriptProcessor(2048, 1, 1),
+                    analyser = audioContext.createAnalyser(),
                     analyser.fftSize = 256;
-                    const bufferLength = analyser.frequencyBinCount;
-                    const dataArray = new Uint8Array(bufferLength);
-
-                    source.connect(analyser);
-                    analyser.connect(processor);
-                    processor.connect(audioContext.destination);
-
-                    processor.onaudioprocess = function (e) {
-                        if (!recording) return;
-                        const float32Array = e.inputBuffer.getChannelData(0);
-                        const base64Audio = base64EncodeAudio(float32Array);
-                        ws.send(JSON.stringify({ type: 'audio', audio: base64Audio }));
-
-                        // Update waveform during recording
-                        analyser.getByteTimeDomainData(dataArray);
-                        drawWaveform(dataArray);
-                    };
-                })
-                .catch(function (err) {
-                    console.log('Error: ' + err);
-                });
-        }
-
-        function stopRecording() {
-            if (!recording) return;
-            recording = false;
-            button.textContent = '按住说话';
-
-            // Stop all audio processing
-            if (processor) {
-                processor.disconnect();
-                processor = null;
-            }
-            if (analyser) {
-                analyser.disconnect();
-                analyser = null;
-            }
-            if (audioContext) {
-                audioContext.close().then(() => {
-                    audioContext = null;
-                    console.log('AudioContext has been closed.');
-                });
-            }
-
-            // Send audio end signal
-            ws.send(JSON.stringify({ type: 'audio_commit' }));
-
-            // Clear waveform
-            waveformCtx.clearRect(0, 0, waveform.width, waveform.height);
-
-            console.log('Recording stopped and committed.');
-        }
-
-        function drawWaveform(dataArray) {
-            // Create gradient background
-            const gradient = waveformCtx.createLinearGradient(0, 0, 0, waveform.height);
-            gradient.addColorStop(0, 'rgba(240, 240, 255, 0.8)');
-            gradient.addColorStop(1, 'rgba(220, 220, 255, 0.8)');
-
-            waveformCtx.fillStyle = gradient;
-            waveformCtx.fillRect(0, 0, waveform.width, waveform.height);
-
-            // Create wave gradient
-            const waveGradient = waveformCtx.createLinearGradient(0, 0, 0, waveform.height);
-            waveGradient.addColorStop(0, 'rgba(0, 100, 255, 0.8)');
-            waveGradient.addColorStop(0.5, 'rgba(0, 150, 255, 0.6)');
-            waveGradient.addColorStop(1, 'rgba(0, 200, 255, 0.4)');
-
-            waveformCtx.lineWidth = 2;
-            waveformCtx.strokeStyle = waveGradient;
-
-            waveformCtx.beginPath();
-
-            const sliceWidth = waveform.width * 1.0 / dataArray.length;
-            let x = 0;
-
-            for (let i = 0; i < dataArray.length; i++) {
-                const v = dataArray[i] / 128.0;
-                const y = v * waveform.height / 2;
-
-                if (i === 0) {
-                    waveformCtx.moveTo(x, y);
-                } else {
-                    waveformCtx.lineTo(x, y);
+                    const n = analyser.frequencyBinCount
+                      , o = new Uint8Array(n);
+                    t.connect(analyser),
+                    analyser.connect(processor),
+                    processor.connect(audioContext.destination),
+                    processor.onaudioprocess = function(e) {
+                        if (!recording)
+                            return;
+                        const t = base64EncodeAudio(e.inputBuffer.getChannelData(0));
+                        ws.send(JSON.stringify({
+                            type: "audio",
+                            audio: t
+                        })),
+                        analyser.getByteTimeDomainData(o),
+                        drawWaveform(o)
+                    }
                 }
-
-                x += sliceWidth;
+                )).catch((function(e) {
+                    console.log("Error: " + e)
+                }
+                )))
             }
-
-            waveformCtx.lineTo(waveform.width, waveform.height / 2);
-            waveformCtx.stroke();
-        }
-
-        function floatTo16BitPCM(float32Array) {
-            const buffer = new ArrayBuffer(float32Array.length * 2);
-            const view = new DataView(buffer);
-            for (let i = 0; i < float32Array.length; i++) {
-                let s = Math.max(-1, Math.min(1, float32Array[i]));
-                view.setInt16(i * 2, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+            function stopRecording() {
+                recording && (recording = !1,
+                button.textContent = "按住说话",
+                processor && (processor.disconnect(),
+                processor = null),
+                analyser && (analyser.disconnect(),
+                analyser = null),
+                ws.send(JSON.stringify({
+                    type: "audio_commit"
+                })),
+                waveformCtx.clearRect(0, 0, waveform.width, waveform.height),
+                console.log("Recording stopped and committed."))
             }
-            return buffer;
-        }
-
-        function base64EncodeAudio(float32Array) {
-            const buffer = floatTo16BitPCM(float32Array);
-            let binary = '';
-            const bytes = new Uint8Array(buffer);
-            for (let i = 0; i < bytes.byteLength; i++) {
-                binary += String.fromCharCode(bytes[i]);
+            function drawWaveform(e) {
+                const t = waveformCtx.createLinearGradient(0, 0, 0, waveform.height);
+                t.addColorStop(0, "rgba(240, 240, 255, 0.8)"),
+                t.addColorStop(1, "rgba(220, 220, 255, 0.8)"),
+                waveformCtx.fillStyle = t,
+                waveformCtx.fillRect(0, 0, waveform.width, waveform.height);
+                const n = waveformCtx.createLinearGradient(0, 0, 0, waveform.height);
+                n.addColorStop(0, "rgba(0, 100, 255, 0.8)"),
+                n.addColorStop(.5, "rgba(0, 150, 255, 0.6)"),
+                n.addColorStop(1, "rgba(0, 200, 255, 0.4)"),
+                waveformCtx.lineWidth = 2,
+                waveformCtx.strokeStyle = n,
+                waveformCtx.beginPath();
+                const o = 1 * waveform.width / e.length;
+                let r = 0;
+                for (let t = 0; t < e.length; t++) {
+                    const n = e[t] / 128 * waveform.height / 2;
+                    0 === t ? waveformCtx.moveTo(r, n) : waveformCtx.lineTo(r, n),
+                    r += o
+                }
+                waveformCtx.lineTo(waveform.width, waveform.height / 2),
+                waveformCtx.stroke()
             }
-            return btoa(binary);
-        }
-
-        // Adjust canvas size
-        function resizeCanvas() {
-            waveform.width = waveform.clientWidth;
-            waveform.height = waveform.clientHeight;
-        }
-
-        window.addEventListener('resize', resizeCanvas);
-        resizeCanvas();
-
-        const textInput = document.getElementById('textInput');
-        const sendButton = document.getElementById('sendButton');
-
-        sendButton.addEventListener('click', sendTextMessage);
-
-        function sendTextMessage() {
-            const text = textInput.value.trim();
-            if (text) {
-                ws.send(JSON.stringify({ type: 'text', content: text }));
-                textInput.value = '';
+            function floatTo16BitPCM(e) {
+                const t = new ArrayBuffer(2 * e.length)
+                  , n = new DataView(t);
+                for (let t = 0; t < e.length; t++) {
+                    let o = Math.max(-1, Math.min(1, e[t]));
+                    n.setInt16(2 * t, o < 0 ? 32768 * o : 32767 * o, !0)
+                }
+                return t
             }
-        }
-
-        function appendMessage(message, isError = false) {
-            const messageContainer = document.getElementById('messageContainer');
-
-            if (!currentMessageElement) {
-                currentMessageElement = document.createElement('div');
-                currentMessageElement.className = isError ? 'error-message' : 'message';
-
-                // Add timestamp
-                const timestamp = new Date().toLocaleTimeString();
-                const timestampElement = document.createElement('span');
-                timestampElement.className = 'timestamp';
-                timestampElement.textContent = `[${timestamp}] `;
-
-                currentMessageElement.appendChild(timestampElement);
-                messageContainer.appendChild(currentMessageElement);
+            function base64EncodeAudio(e) {
+                const t = floatTo16BitPCM(e);
+                let n = "";
+                const o = new Uint8Array(t);
+                for (let e = 0; e < o.byteLength; e++)
+                    n += String.fromCharCode(o[e]);
+                return btoa(n)
             }
-
-            // Add message content
-            const messageContent = document.createElement('span');
-            messageContent.textContent = message;
-            currentMessageElement.appendChild(messageContent);
-
-            messageContainer.scrollTop = messageContainer.scrollHeight;
-        }
-
-        function finishCurrentMessage() {
-            currentMessageElement = null;
-        }
-
-        // 修改事件监听器
-        button.addEventListener('mousedown', startRecording);
-        button.addEventListener('mouseup', stopRecording);
-        button.addEventListener('mouseleave', stopRecording);
-        button.addEventListener('touchstart', startRecording);
-        button.addEventListener('touchend', stopRecording);
-
-        // 防止页面滚动
-        document.body.addEventListener('touchmove', function (event) {
-            event.preventDefault();
-        }, { passive: false });
-
-        // 添加新的函数来停止当前音频并清空队列
-        function stopCurrentAudioAndClearQueue() {
-            if (currentSource) {
-                currentSource.stop();
-                currentSource = null;
+            function resizeCanvas() {
+                waveform.width = waveform.clientWidth,
+                waveform.height = waveform.clientHeight
             }
-            audioBufferQueue = [];
-            isPlaying = false;
-            stopVisualizer();
-        }
-    </script>
-    <script>
-        var _hmt = _hmt || [];
-        (function () {
-            var hm = document.createElement("script");
-            hm.src = "https://hm.baidu.com/hm.js?af396cec7dae400977b8dfde8ff1b9ef";
-            var s = document.getElementsByTagName("script")[0];
-            s.parentNode.insertBefore(hm, s);
-        })();
-    </script>
-
-</body>
-
+            window.addEventListener("resize", resizeCanvas),
+            resizeCanvas();
+            const textInput = document.getElementById("textInput")
+              , sendButton = document.getElementById("sendButton");
+            function sendTextMessage() {
+                const e = textInput.value.trim();
+                e && (ws.send(JSON.stringify({
+                    type: "text",
+                    content: e
+                })),
+                textInput.value = "")
+            }
+            function appendMessage(e, t=!1) {
+                const n = document.getElementById("messageContainer");
+                if (!currentMessageElement) {
+                    currentMessageElement = document.createElement("div"),
+                    currentMessageElement.className = t ? "error-message" : "message";
+                    const e = (new Date).toLocaleTimeString()
+                      , o = document.createElement("span");
+                    o.className = "timestamp",
+                    o.textContent = `[${e}] `,
+                    currentMessageElement.appendChild(o),
+                    n.appendChild(currentMessageElement)
+                }
+                const o = document.createElement("span");
+                o.textContent = e,
+                currentMessageElement.appendChild(o),
+                n.scrollTop = n.scrollHeight
+            }
+            function finishCurrentMessage() {
+                currentMessageElement = null
+            }
+            function stopCurrentAudioAndClearQueue() {
+                currentSource && (currentSource.stop(),
+                currentSource = null),
+                audioBufferQueue = [],
+                isPlaying = !1,
+                stopVisualizer()
+            }
+            sendButton.addEventListener("click", sendTextMessage),
+            button.addEventListener("mousedown", startRecording),
+            button.addEventListener("mouseup", stopRecording),
+            button.addEventListener("mouseleave", stopRecording),
+            button.addEventListener("touchstart", startRecording),
+            button.addEventListener("touchend", stopRecording),
+            document.body.addEventListener("touchmove", (function(e) {
+                e.preventDefault()
+            }
+            ), {
+                passive: !1
+            });
+        </script>
+        <script>
+            var _hmt = _hmt || [];
+            !function() {
+                var e = document.createElement("script");
+                e.src = "https://hm.baidu.com/hm.js?af396cec7dae400977b8dfde8ff1b9ef";
+                var t = document.getElementsByTagName("script")[0];
+                t.parentNode.insertBefore(e, t)
+            }();
+        </script>
+    </body>
 </html>
