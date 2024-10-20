@@ -102,7 +102,8 @@
                 box-sizing: border-box;
                 height: 300px;
                 overflow-y: auto;
-                padding: 10px
+                padding: 10px;
+                line-height: 1.6;
             }
 
             #textInput {
@@ -273,7 +274,8 @@
             </div>
         </div>
         <script>
-            let audioContext, playbackDataArray, visualizerAnimationFrame, audioBufferQueue = [], isPlaying = !1, currentSource = null, playbackAnalyser = null;
+            let audioContext, playbackDataArray, visualizerAnimationFrame, isPlaying = false, currentSource = null, playbackAnalyser = null;
+            let playbackTime = 0; // 新增：跟踪音频的计划播放时间
             function initAudioContext() {
                 audioContext || (audioContext = new (window.AudioContext || window.webkitAudioContext)({
                     sampleRate: 24e3
@@ -295,32 +297,60 @@
             function playAudioFromBase64PCM16(e, t=24e3, n=1) {
                 initAudioContext();
                 const o = base64ToArrayBuffer(e);
-                const r = convertPCM16ToFloat32(new Int16Array(o))
-                  , a = createAudioBuffer(audioContext, r, t, n);
-                audioBufferQueue.push(a),
-                isPlaying || recording || playNextAudioBuffer()
+                const r = convertPCM16ToFloat32(new Int16Array(o));
+                const a = createAudioBuffer(audioContext, r, t, n);
+                
+                if (!isPlaying) {
+                    isPlaying = true;
+                    playbackTime = audioContext.currentTime;
+                }
+                
+                scheduleAudioBuffer(a);
             }
-            function playNextAudioBuffer() {
-                if (0 === audioBufferQueue.length)
-                    return isPlaying = !1,
-                    void stopVisualizer();
-                isPlaying = !0;
-                const e = audioBufferQueue.shift();
-                currentSource = audioContext.createBufferSource(),
-                currentSource.buffer = e,
-                playbackAnalyser || (playbackAnalyser = audioContext.createAnalyser(),
-                playbackAnalyser.fftSize = 256,
-                playbackDataArray = new Uint8Array(playbackAnalyser.frequencyBinCount)),
-                currentSource.connect(playbackAnalyser),
-                playbackAnalyser.connect(audioContext.destination),
-                currentSource.onended = playNextAudioBuffer,
-                currentSource.start(0),
-                visualizerAnimationFrame || drawPlaybackWaveform()
+            function scheduleAudioBuffer(buffer) {
+                const source = audioContext.createBufferSource();
+                source.buffer = buffer;
+
+                // 创建一个GainNode用于淡入淡出
+                const gainNode = audioContext.createGain();
+
+                // 设置淡入淡出时间，单位为秒
+                const fadeTime = 0.01;
+                const duration = buffer.duration;
+
+                // 应用淡入淡出以消除片段切换时的爆破声
+                gainNode.gain.setValueAtTime(0, playbackTime);
+                gainNode.gain.linearRampToValueAtTime(1, playbackTime + fadeTime);
+                gainNode.gain.setValueAtTime(1, playbackTime + duration - fadeTime);
+                gainNode.gain.linearRampToValueAtTime(0, playbackTime + duration);
+
+                // 连接节点
+                source.connect(gainNode);
+
+                if (!playbackAnalyser) {
+                    playbackAnalyser = audioContext.createAnalyser();
+                    playbackAnalyser.fftSize = 256;
+                    playbackDataArray = new Uint8Array(playbackAnalyser.frequencyBinCount);
+                }
+
+                gainNode.connect(playbackAnalyser);
+                playbackAnalyser.connect(audioContext.destination);
+
+                // 在指定的时间开始播放
+                source.start(playbackTime);
+
+                // 更新下一个音频片段的播放时间
+                playbackTime += duration;
+
+                // 如果是第一个音频片段，开始绘制波形
+                if (!visualizerAnimationFrame) {
+                    drawPlaybackWaveform();
+                }
             }
             function drawPlaybackWaveform() {
-                visualizerAnimationFrame = requestAnimationFrame(drawPlaybackWaveform),
-                playbackAnalyser.getByteTimeDomainData(playbackDataArray),
-                drawWaveform(playbackDataArray)
+                visualizerAnimationFrame = requestAnimationFrame(drawPlaybackWaveform);
+                playbackAnalyser.getByteTimeDomainData(playbackDataArray);
+                drawWaveform(playbackDataArray);
             }
             function stopVisualizer() {
                 visualizerAnimationFrame && (cancelAnimationFrame(visualizerAnimationFrame),
@@ -362,8 +392,8 @@
                     ws.send(JSON.stringify({
                         type: "response.cancel"
                     }));
-                    stopCurrentAudioAndClearQueue();
-                    button.classList.add("recording");  // 添加recording类
+                    stopCurrentAudioAndClearQueue(); // 确保这个函数被调用
+                    button.classList.add("recording");
                     navigator.mediaDevices.getUserMedia({
                         audio: true
                     }).then(function(stream) {
@@ -489,11 +519,21 @@
                 currentMessageElement = null
             }
             function stopCurrentAudioAndClearQueue() {
-                currentSource && (currentSource.stop(),
-                currentSource = null),
-                audioBufferQueue = [],
-                isPlaying = !1,
-                stopVisualizer()
+                if (currentSource) {
+                    currentSource.stop();
+                    currentSource.disconnect();
+                    currentSource = null;
+                }
+                if (playbackAnalyser) {
+                    playbackAnalyser.disconnect();
+                    playbackAnalyser = null;
+                }
+                isPlaying = false;
+                playbackTime = 0;
+                stopVisualizer();
+                // 清空任何可能存在的音频队列
+                // 如果你有使用 audioBufferQueue，请在这里清空它
+                // audioBufferQueue = [];
             }
             sendButton.addEventListener("click", sendTextMessage),
             button.addEventListener("mousedown", startRecording),
