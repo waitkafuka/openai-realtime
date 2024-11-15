@@ -9,7 +9,7 @@
         body {
             min-height: 100vh;
             margin: 0;
-            background: linear-gradient(to bottom, #9533ff, #6131ff);
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
             font-family: Arial, sans-serif;
             color: #333;
         }
@@ -274,6 +274,60 @@
         #talkButton.recording .recording-dots {
             display: flex;
         }
+
+        /* 修改：文本输入框和发送按钮的样式 */
+        .text-input-container {
+            display: flex;
+            width: 100%;
+            max-width: 600px;
+            margin-top: 20px;
+        }
+
+        #textInput {
+            flex-grow: 1;
+            height: 40px; /* 调整高度 */
+            padding: 5px 15px; /* 调整内边距 */
+            border: 2px solid #6531ff; /* 更改边框颜色和粗细 */
+            border-radius: 20px 0 0 20px; /* 圆角左侧 */
+            font-size: 16px;
+            outline: none; /* 移除焦点时的轮廓 */
+            transition: all 0.3s ease; /* 添加过渡效果 */
+        }
+
+        #textInput:focus {
+            box-shadow: 0 0 5px rgba(101, 49, 255, 0.5); /* 添加焦点时的阴影效果 */
+        }
+
+        #sendButton {
+            width: 80px; /* 固定宽度 */
+            height: 40px; /* 与输入框高度一致 */
+            background-color: #6531ff;
+            color: white;
+            border: none;
+            border-radius: 0 20px 20px 0; /* 圆角右侧 */
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+
+        #sendButton:hover {
+            background-color: #5429d6;
+        }
+
+        /* 调整移动设备上的样式 */
+        @media (max-width: 600px) {
+            .text-input-container {
+                flex-direction: row; /* 保持水平排列 */
+            }
+
+            #textInput {
+                border-radius: 20px 0 0 20px; /* 保持左侧圆角 */
+            }
+
+            #sendButton {
+                border-radius: 0 20px 20px 0; /* 保持右侧圆角 */
+            }
+        }
     </style>
     <link rel="stylesheet" href="//at.alicdn.com/t/c/font_4717208_c3xs9zajojs.css">
 </head>
@@ -301,9 +355,10 @@
                 <span class="dot"></span>
             </div>
         </button>
-        <div style="display: none;">
-            <textarea id="textInput" placeholder="输入文本消息..."></textarea>
-            <button id="sendButton">发送</button>
+        <!-- 新增：文本输入框和发送按钮 -->
+        <div class="text-input-container">
+            <input type="text" id="textInput" placeholder="Type your message here...">
+            <button id="sendButton">Send</button>
         </div>
     </div>
     <script>
@@ -580,6 +635,33 @@
             ), {
                 passive: !1
             });
+
+        // 新增：获取文本输入框和发送按钮元素
+        const textInput = document.getElementById('textInput');
+        const sendButton = document.getElementById('sendButton');
+
+        // 新增：发送文本消息的函数
+        function sendTextMessage() {
+            const message = textInput.value.trim();
+            if (message) {
+                ws.send(JSON.stringify({
+                    type: "text",
+                    content: message
+                }));
+                textInput.value = '';
+                appendMessage('You: ' + message);
+            }
+        }
+
+        // 新增：为发送按钮添加点击事件监听器
+        sendButton.addEventListener('click', sendTextMessage);
+
+        // 新增：为文本输入框添加回车键事件监听器
+        textInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendTextMessage();
+            }
+        });
     </script>
     <script>
         var _hmt = _hmt || [];

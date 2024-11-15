@@ -1,0 +1,48 @@
+version: '3.4'
+
+services:
+  dudu-api:
+    # image: calciumion/new-api 
+    image: username/my-dudu-api:v1.0.6
+    restart: always
+    command: --log-dir /app/logs
+    ports:
+      - "3091:3000"
+    volumes:
+      - /home/ec2-user/one-data/dudu-newapi:/data
+      - /home/ec2-user/one-data/dudu-newapilogs:/app/logs
+    environment:
+      - SQL_DSN=newapi:4763b7f3f16d69b43d602238c2b58134@tcp(db:3306)/new-api  # 修改此行，或注释掉以使用 SQLite 作为数据库
+      - REDIS_CONN_STRING=redis://redis
+      - SESSION_SECRET=3a55c9db4cc5ccc25f0ef3339f4105ec  # 修改为随机字符串
+      - TZ=Asia/Shanghai
+#      - NODE_TYPE=slave  # 多机部署时从节点取消注释该行
+#      - SYNC_FREQUENCY=60  # 需要定期从数据库加载数据时取消注释该行
+#      - FRONTEND_BASE_URL=https://openai.justsong.cn  # 多机部署时从节点取消注释该行
+
+    depends_on:
+      - redis
+      - db
+    healthcheck:
+      test: [ "CMD-SHELL", "wget -q -O - http://localhost:3000/api/status | grep -o '\"success\":\\s*true' | awk -F: '{print $2}'" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  redis:
+    image: redis:latest
+    restart: always
+
+  db:
+    image: "${REGISTRY:-docker.io}/mysql:8.2.0"
+    restart: always
+    volumes:
+      - /home/ec2-user/one-data/mysql:/var/lib/mysql  # 挂载目录，持久化存储
+    ports:
+      - '3306:3306'
+    environment:
+      TZ: Asia/Shanghai   # 设置时区
+      MYSQL_ROOT_PASSWORD: 'dkjusdawtsong12aacdklaw' # 设置 root 用户的密码
+      MYSQL_USER: newapi   # 创建专用用户
+      MYSQL_PASSWORD: '4763b7f3f16d69b43d602238c2b58134'    # 设置专用用户密码
+      MYSQL_DATABASE: new-api   # 自动创建数据库
